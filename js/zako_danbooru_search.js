@@ -582,6 +582,8 @@ app.registerExtension({
         if (nodeData.name !== "ZakoDanbooruSearch") return;
 
         const origOnNodeCreated = nodeType.prototype.onNodeCreated;
+        const origOnExecuted = nodeType.prototype.onExecuted;
+
         nodeType.prototype.onNodeCreated = function () {
             const r = origOnNodeCreated?.apply(this, arguments);
 
@@ -590,8 +592,9 @@ app.registerExtension({
 
             const selectedWidget = this.widgets.find((w) => w.name === "selected_tags");
             if (selectedWidget) {
-                selectedWidget.type = "hidden";
-                selectedWidget.computeSize = () => [0, -4];
+                selectedWidget.computeSize = function (width) {
+                    return [width, 120];
+                };
             }
 
             const apiKeyWidget = this.widgets.find((w) => w.name === "api_key");
@@ -618,11 +621,17 @@ app.registerExtension({
 
                 _showSearchModal(apiKey, tagMode, (tags) => {
                     if (selectedWidget) selectedWidget.value = tags;
-                    self.applyToGraph();
                     self.setDirtyCanvas(true, true);
                 });
             });
             btn.serialize = false;
+
+            this.onExecuted = function (msg) {
+                origOnExecuted?.apply(this, arguments);
+                if (this.outputs && this.outputs[0]) {
+                    this.outputs[0].label = "";
+                }
+            };
 
             return r;
         };
