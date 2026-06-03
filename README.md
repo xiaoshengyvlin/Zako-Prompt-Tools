@@ -5,11 +5,7 @@
 ## 安装
 
 1. 复制到 ComfyUI `custom_nodes/Zako-Prompt-Tools/`
-2. 安装依赖：
-
-```bash
-pip install -r requirements.txt
-```
+2. 要求requests>=2.28.0
 
 ## 节点列表
 
