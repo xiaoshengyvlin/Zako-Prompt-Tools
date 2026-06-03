@@ -13,15 +13,15 @@ class ZakoDanbooruSearch:
                     ["全部", "不含画师", "anima画师"],
                     {"default": "不含画师"},
                 ),
-                "selected_tags": (
-                    "STRING",
-                    {"default": "", "multiline": False},
-                ),
             },
             "optional": {
                 "api_key": (
                     "STRING",
                     {"default": "", "multiline": False, "placeholder": "username:api_key (可选)"},
+                ),
+                "selected_tags": (
+                    "STRING",
+                    {"default": "", "multiline": True},
                 ),
             },
         }
