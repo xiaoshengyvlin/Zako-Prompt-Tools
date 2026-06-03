@@ -49,7 +49,7 @@ class ZakoTagTranslate:
                 "system_prompt": (
                     "STRING",
                     {
-                        "default": "",
+                        "default": _SYSTEM_PROMPT_DEFAULT,
                         "multiline": True,
                         "placeholder": "系统提示词，可自定义调整翻译行为...",
                     },
