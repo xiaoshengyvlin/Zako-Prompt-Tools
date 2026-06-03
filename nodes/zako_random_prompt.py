@@ -65,6 +65,12 @@ class ZakoRandomPrompt:
     OUTPUT_NODE = False
     DESCRIPTION = "从内置提示词库随机抽卡。支持 G/S/Q/E 分级过滤 + 主题选择，开启=每次刷新，关闭=锁定上次结果。"
 
+    @classmethod
+    def IS_CHANGED(cls, enable_random, **kwargs):
+        if not enable_random:
+            return 0
+        return float("nan")
+
     def get_prompt(
         self,
         enable_random: bool,
