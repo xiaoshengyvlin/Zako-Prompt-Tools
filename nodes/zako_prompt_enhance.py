@@ -60,7 +60,7 @@ class ZakoPromptEnhance:
                 "system_prompt": (
                     "STRING",
                     {
-                        "default": "",
+                        "default": _SYSTEM_PROMPT_DEFAULT,
                         "multiline": True,
                         "placeholder": "提示词增强规则，可自定义...",
                     },
