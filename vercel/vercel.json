@@ -1,13 +1,6 @@
 {
   "functions": {
-    "api/tag-translate.js": {
-      "maxDuration": 10,
-      "includeFiles": "mapping/**"
-    },
-    "api/db-proxy.js": {
-      "maxDuration": 10
-    },
-    "api/db-search.js": {
+    "api/*.js": {
       "maxDuration": 10
     }
   }

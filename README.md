@@ -1,4 +1,4 @@
-**Vercel 一键部署（D站搜索代理）：** *点击后请将 Root Directory 改为 `vercel`*
+**Vercel 一键部署** *点击后 Root Directory 改为 `vercel`* | **Cloudflare Workers 部署** *见 `cf-worker/`*
 
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new?repository-url=https://github.com/xiaoshengyvlin/Zako-Prompt-Tools)
 
@@ -20,23 +20,18 @@
 | **Zako-Tag-Translate** | 通过 OpenAI 兼容 API 翻译提示词标签（中↔英） | 硅基流动 / DeepSeek 等 |
 | **Zako-Prompt-Enhance** | 通过 LLM 为标签末尾追加自然语言场景描述，遇到审查自动回退 | 硅基流动 / DeepSeek 等 |
 
-## Vercel 代理模式
+## 代理模式
 
-Danbooru-Search 节点支持两种运行模式，通过在节点上填写 `proxy_url` 切换：
+当服务器无法直连 Danbooru（如无影云），可通过 `proxy_url` 节点输入框配置代理层。支持两种部署方案：
 
-### 正常模式（`proxy_url` 留空）
-浏览器直连 D 站 API，图片和标签翻译走 ComfyUI 本地服务器中转。适用于服务器能直连 Danbooru 的环境。
+| | Vercel | Cloudflare Workers |
+|---|--------|-------------------|
+| **部署难度** | 一键部署 | 手动粘贴代码 |
+| **国内连通性** | 可能被墙 | 通常可通 |
+| **部署文件** | `vercel/` 目录 | `cf-worker/_worker.js` |
+| **代理内容** | D 站搜索 + 图片 | D 站搜索 + 图片 |
 
-### 代理模式（`proxy_url` 填入 Vercel 域名）
-所有 D 站请求（搜索、图片、标签翻译）统一走 Vercel Serverless 转发。适用于无影云等无法直连 Danbooru 的环境。
-
-**部署代理层：**
-1. 推送仓库到 GitHub
-2. 打开 [vercel.com/import](https://vercel.com/import)，选仓库，**Root Directory 设为 `vercel`**，点 Deploy
-3. 获取域名（如 `https://zako-xxxxx.vercel.app`），填入节点的 `proxy_url` 输入框
-4. 每次更新 `tag.sqlite` 后运行 `python vercel/scripts/predeploy.py` 再推送
-
-两种模式对 Random-Prompt、Tag-Translate、Prompt-Enhance 三个节点无影响。
+标签翻译固定走 ComfyUI 本地路由，不经过代理。
 
 ## 搜索节点特性
 
@@ -46,7 +41,7 @@ Danbooru-Search 节点支持两种运行模式，通过在节点上填写 `proxy
 - 分类输出：画师 / 版权 / 角色 / 通用，分行 + 逗号分隔
 - API Key 存 localStorage，`serialize=false` 分享工作流不泄露
 - 图片代理绕 Electron CSP + 浏览器缓存 24 小时
-- 代理模式下 api_key 通过 HTTP Header 传输，不暴露在 Vercel 日志
+- 代理模式下 api_key 通过 HTTP Header 传输
 - 代理模式下冷启动失败自动重试 1 次
 
 ## 翻译节点特性
@@ -74,7 +69,6 @@ Danbooru-Search 节点支持两种运行模式，通过在节点上填写 `proxy
 
 ### 中英文映射
 - `mapping/tag.sqlite` — 30 万条 Danbooru 标签中英对照
-- Vercel 代理层额外使用 `vercel/mapping/hot-tags.json`（7.5 万条高频标签，4MB），优先从内存热数据查询，冷门标签才回退 SQLite
 
 ## 目录结构
 
@@ -99,19 +93,14 @@ Zako-Prompt-Tools/
 │   └── json/{G,S,Q,E}/                # 76 个主题 JSON
 ├── mapping/
 │   └── tag.sqlite                      # 30 万中英对照
-└── vercel/                             # Vercel Serverless 代理层
-    ├── api/
-    │   ├── db-search.js                # D 站搜索转发
-    │   ├── db-proxy.js                 # D 站图片代理
-    │   └── tag-translate.js            # 标签翻译（热数据 + SQLite 回退）
-    ├── mapping/
-    │   ├── tag.sqlite                  # 同步自根目录
-    │   └── hot-tags.json              # 高频标签热数据
-    ├── scripts/
-    │   ├── extract-hot-tags.py         # 提取高频标签生成 JSON
-    │   └── predeploy.py               # 部署前同步脚本
-    ├── package.json
-    └── vercel.json
+├── vercel/                             # Vercel Serverless 代理层
+│   ├── api/
+│   │   ├── db-search.js                # D 站搜索转发
+│   │   └── db-proxy.js                 # D 站图片代理
+│   ├── package.json
+│   └── vercel.json
+└── cf-worker/                          # Cloudflare Workers 代理层
+    └── _worker.js                      # D 站搜索 + 图片代理
 ```
 
 ## 技术要点
@@ -123,4 +112,3 @@ Zako-Prompt-Tools/
 - IntersectionObserver 自动卸载离屏图片，控制内存
 - API Key：`serialize=false` + localStorage 持久化，不保存到工作流 JSON
 - LLM 安全兜底：检测 API 拒绝话术，自动回退原始输入保证节点不断流
-- Vercel 代理：api_key 走 Header 传输不落日志，冷启动自动重试，热数据优先降低延迟
