@@ -48,13 +48,13 @@ class ZakoRandomPrompt:
                     "BOOLEAN",
                     {"default": True, "label_on": "抽取", "label_off": "固定"},
                 ),
-                "topic": (cls._scan_topics(), {"default": "全部"}),
+                "主题": (cls._scan_topics(), {"default": "全部"}),
             },
             "optional": {
-                "include_g": ("BOOLEAN", {"default": True, "label_on": "G", "label_off": "G"}),
-                "include_s": ("BOOLEAN", {"default": True, "label_on": "S", "label_off": "S"}),
-                "include_q": ("BOOLEAN", {"default": True, "label_on": "Q", "label_off": "Q"}),
-                "include_e": ("BOOLEAN", {"default": True, "label_on": "E", "label_off": "E"}),
+                "普通": ("BOOLEAN", {"default": True, "label_on": "G", "label_off": "G"}),
+                "敏感": ("BOOLEAN", {"default": True, "label_on": "S", "label_off": "S"}),
+                "可疑": ("BOOLEAN", {"default": True, "label_on": "Q", "label_off": "Q"}),
+                "露骨": ("BOOLEAN", {"default": True, "label_on": "E", "label_off": "E"}),
             },
         }
 
@@ -74,11 +74,11 @@ class ZakoRandomPrompt:
     def get_prompt(
         self,
         enable_random: bool,
-        topic: str = "全部",
-        include_g: bool = True,
-        include_s: bool = True,
-        include_q: bool = True,
-        include_e: bool = True,
+        主题: str = "全部",
+        普通: bool = True,
+        敏感: bool = True,
+        可疑: bool = True,
+        露骨: bool = True,
     ) -> tuple:
         if not enable_random:
             last = getattr(self, "_last_prompt", None)
@@ -87,13 +87,13 @@ class ZakoRandomPrompt:
             return ("[未抽过卡，请先开启随机]",)
 
         ratings: list[str] = []
-        if include_g:
+        if 普通:
             ratings.append("G")
-        if include_s:
+        if 敏感:
             ratings.append("S")
-        if include_q:
+        if 可疑:
             ratings.append("Q")
-        if include_e:
+        if 露骨:
             ratings.append("E")
 
         if not ratings:

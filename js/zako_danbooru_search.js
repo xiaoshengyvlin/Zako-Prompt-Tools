@@ -17,6 +17,10 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
 
     const proxyBase = (proxyUrl || "").replace(/\/+$/, "");
     const isProxy = !!proxyBase;
+    const modeLabel = isProxy
+        ? (proxyBase.includes("workers.dev") ? "[Cloudflare]" : "[Vercel]")
+        : "[直连]";
+    const modeErr = (msg) => modeLabel + " " + msg;
     const danbooruApi = isProxy ? `${proxyBase}/api/db-search` : "https://danbooru.donmai.us/posts.json";
     const maxRetries = isProxy ? 2 : 5;
     const timeoutMs = isProxy ? 8000 : 30000;
@@ -83,7 +87,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
                     throw err;
                 }
                 if (err.name === "AbortError") {
-                    if (attempt === maxRetries - 1) throw new Error("请求超时");
+                    if (attempt === maxRetries - 1) throw new Error(modeErr("连接失败: 请求超时"));
                 } else if (attempt === maxRetries - 1) {
                     throw err;
                 }
@@ -248,7 +252,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
         title.style.color = "#a6e3a1";
         title.style.transition = "none";
         setTimeout(() => {
-            title.textContent = currentDisplayTag + "  共" + allPosts.length + "张";
+            title.textContent = modeLabel + " " + currentDisplayTag + "  共" + allPosts.length + "张";
             title.style.color = "#89b4fa";
             title.style.transition = "color 0.3s";
         }, 2000);
@@ -364,8 +368,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
     }
 
     function _updateFooter() {
-        title.textContent = currentDisplayTag + "  共" + allPosts.length + "张";
-        if (allPosts.length === 0 && !loading) {
+        title.textContent = modeLabel + " " + currentDisplayTag + "  共" + allPosts.length + "张";
             moreBtn.style.display = "none";
         } else if (exhausted) {
             moreBtn.style.display = "block";
@@ -388,7 +391,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
         exhausted = false;
         renderedCount = 0;
         grid.innerHTML = "";
-        title.textContent = currentDisplayTag + "  正在爬取...";
+        title.textContent = modeLabel + " " + currentDisplayTag + "  正在爬取...";
         moreBtn.style.display = "none";
     }
 
@@ -440,7 +443,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
                     continue;
                 }
                 exhausted = true;
-                title.textContent = "请求失败: " + (err.message || "网络错误");
+                title.textContent = modeErr("连接失败: " + (err.message || "网络错误"));
                 title.style.color = "#f38ba8";
             }
         }
@@ -478,7 +481,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
                     continue;
                 }
                 exhausted = true;
-                title.textContent = "请求失败: " + (err.message || "网络错误");
+                title.textContent = modeErr("连接失败: " + (err.message || "网络错误"));
                 title.style.color = "#f38ba8";
             }
         }
@@ -492,7 +495,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
         const raw = input.value.trim();
         if (!raw) return;
 
-        searchBtn.textContent = "搜索中...";
+        searchBtn.textContent = modeLabel + " 搜索中...";
         searchBtn.disabled = true;
 
         let apiTag = raw;
@@ -658,7 +661,7 @@ app.registerExtension({
                 };
             }
 
-            const tagModeWidget = this.widgets.find((w) => w.name === "tag_mode");
+            const tagModeWidget = this.widgets.find((w) => w.name === "tag格式");
             const self = this;
 
             const btn = this.addWidget("button", "🔍 搜索", null, () => {

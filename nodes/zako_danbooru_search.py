@@ -9,7 +9,7 @@ class ZakoDanbooruSearch:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tag_mode": (
+                "tag格式": (
                     ["全部", "不含画师", "anima画师"],
                     {"default": "不含画师"},
                 ),
@@ -37,7 +37,7 @@ class ZakoDanbooruSearch:
     OUTPUT_NODE = False
     DESCRIPTION = "D站灵感搜索。弹窗内输入标签搜索，支持中文→英文翻译，tag筛选(全部/不含画师/anima画师)，API Key可选。"
 
-    def get_prompt(self, tag_mode: str = "不含画师", selected_tags: str = "", api_key: str = "", proxy_url: str = "") -> tuple:
+    def get_prompt(self, tag格式: str = "不含画师", selected_tags: str = "", api_key: str = "", proxy_url: str = "") -> tuple:
         if not selected_tags.strip():
             return ("[请先搜索并点击选择一张图]",)
 
