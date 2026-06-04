@@ -46,7 +46,7 @@ git clone https://github.com/xiaoshengyvlin/Zako-Prompt-Tools.git
 |---|:---:|:---:|:---:|
 | `proxy_url` | 留空 | Vercel 域名 | Workers 域名 |
 | 部署 | 无需配置 | 点上方 🚀 一键部署 | 粘贴 `cf-worker/_worker.js` |
-| 国内连通 | ❌ 大概率被墙 | ⚠️ 可能被墙 | ✅ 通常正常 |
+| 国内连通 | ❌ 大概率被墙 | ⚠️ 可能被墙 | ✅ 一般正常 |
 
 > 三种模式仅影响 D 站搜索和图片加载。标签翻译固定走 ComfyUI 本地。
 
