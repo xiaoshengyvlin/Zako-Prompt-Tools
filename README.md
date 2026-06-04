@@ -1,3 +1,5 @@
+**Vercel 一键部署（D站搜索代理）：**
+
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new?repository-url=https://github.com/xiaoshengyvlin/Zako-Prompt-Tools&root-directory=vercel)
 
 # Zako-Prompt-Tools — ComfyUI 提示词工具组
