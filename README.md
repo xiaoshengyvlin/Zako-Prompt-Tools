@@ -1,6 +1,6 @@
-**Vercel 一键部署（D站搜索代理）：**
+**Vercel 一键部署（D站搜索代理）：** *点击后请将 Root Directory 改为 `vercel`*
 
-[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/xiaoshengyvlin/Zako-Prompt-Tools&root-directory=vercel)
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new?repository-url=https://github.com/xiaoshengyvlin/Zako-Prompt-Tools)
 
 # Zako-Prompt-Tools — ComfyUI 提示词工具组
 
