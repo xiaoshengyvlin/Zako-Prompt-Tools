@@ -1,5 +1,10 @@
+### 🚀 Vercel 一键部署
+*点击按钮 → Root Directory 改为 `vercel` → Deploy*
+
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new?repository-url=https://github.com/xiaoshengyvlin/Zako-Prompt-Tools)
-&nbsp; &nbsp; `cf-worker/` → Cloudflare Workers 部署
+
+### ☁️ Cloudflare Workers 部署
+*打开 [dash.cloudflare.com](https://dash.cloudflare.com) → Workers → 粘贴 `cf-worker/_worker.js` → Deploy*
 
 ---
 
@@ -27,23 +32,23 @@ git clone https://github.com/xiaoshengyvlin/Zako-Prompt-Tools.git
 | 🎲 **Random-Prompt** | 20 万+提示词库随机抽卡，G/S/Q/E 分级 + 主题筛选 | 否 |
 | 🔍 **Danbooru-Search** | D 站搜图，中文翻译 → 5 列预览 → 点击填入标签 | 可选 |
 | 🌐 **Tag-Translate** | LLM 中英互译提示词标签，保持原格式 | 是 |
-| ✨ **Prompt-Enhance** | LLM 为标签追加场景/光影/氛围描述 | 是 |
+| ✨ **Prompt-Enhance** | LLM 为标签追加自然语言描述 | 是 |
 
 > Random-Prompt 完全离线，其余三个可串联：`Random → Translate → Enhance → CLIP`
 
 ---
 
-## 代理模式（仅 Danbooru-Search 节点）
+## 模式选择（仅 Danbooru-Search 节点）
 
-当服务器无法直连 Danbooru，在节点的 **`proxy_url`** 输入框填入代理域名即可。
+在节点的 **`proxy_url`** 输入框切换：
 
-| | Vercel | Cloudflare Workers |
-|---|:---:|:---:|
-| 部署 | 点上方按钮一键部署 | `cf-worker/_worker.js` 粘贴到 CF 面板 |
-| 代理内容 | D 站搜索 + 图片 | D 站搜索 + 图片 |
-| 国内连通 | ⚠️ 可能被墙 | ✅ 通常正常 |
+| | 直连 | Vercel | Cloudflare |
+|---|:---:|:---:|:---:|
+| `proxy_url` | 留空 | Vercel 域名 | Workers 域名 |
+| 部署 | 无需配置 | 点上方 🚀 一键部署 | 粘贴 `cf-worker/_worker.js` |
+| 国内连通 | ❌ 大概率被墙 | ⚠️ 可能被墙 | ✅ 通常正常 |
 
-> 标签翻译固定走 ComfyUI 本地，不经过代理。
+> 三种模式仅影响 D 站搜索和图片加载。标签翻译固定走 ComfyUI 本地。
 
 ---
 
