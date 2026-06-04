@@ -1,9 +1,6 @@
 import { app } from "../../../scripts/app.js";
 
 
-const DANBOORU_API = "https://danbooru.donmai.us/posts.json";
-const MAX_RETRIES = 5;
-const TIMEOUT_MS = 30000;
 const API_LIMIT = 100;
 
 let _lastSearch = null;
@@ -14,74 +11,87 @@ function _sleep(ms) {
 }
 
 
-async function _fetchPage(tag, apiKey, page) {
-    let url = `${DANBOORU_API}?tags=${encodeURIComponent(tag)}&limit=${API_LIMIT}&page=${page}`;
-    if (apiKey && apiKey.includes(":")) {
-        const [user, key] = apiKey.trim().split(":", 2);
-        url += `&login=${encodeURIComponent(user)}&api_key=${encodeURIComponent(key)}`;
-    }
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-        try {
-            const resp = await fetch(url, {
-                headers: { "User-Agent": `DanbooruTagExporter/${Math.random().toFixed(2)}` },
-                signal: controller.signal,
-            });
-            clearTimeout(timer);
-
-            if (resp.status === 429) {
-                await _sleep(5000);
-                continue;
-            }
-
-            if (resp.status === 401) {
-                throw new Error("API Key 无效，请检查 username:api_key 是否正确");
-            }
-
-            if (resp.status === 422) {
-                let detail = "";
-                try { const err = await resp.json(); detail = err.message || err.error || ""; } catch (_) {}
-                if (detail.includes("more than 2 tags") || detail.includes("TagLimit")) {
-                    throw new Error("标签限制：非黄金会员仅支持2个标签，请填写 API Key");
-                }
-                throw new Error("搜索参数错误 (422): " + (detail || "请检查标签格式"));
-            }
-
-            let data;
-            try { data = await resp.json(); } catch (_) { data = null; }
-
-            if (resp.status >= 500 && Array.isArray(data)) {
-                return data.filter((p) => p.tag_string && p.preview_file_url);
-            }
-
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
-
-            if (!Array.isArray(data)) throw new Error("返回格式异常");
-
-            return data.filter((p) => p.tag_string && p.preview_file_url);
-        } catch (err) {
-            clearTimeout(timer);
-            if (err.message && err.message.includes("API Key")) {
-                throw err;
-            }
-            if (err.name === "AbortError") {
-                if (attempt === MAX_RETRIES - 1) throw new Error("请求超时");
-            } else if (attempt === MAX_RETRIES - 1) {
-                throw err;
-            }
-            await _sleep(1000 + attempt * 500);
-        }
-    }
-    return [];
-}
-
-
-function _showSearchModal(apiKey, tagMode, onSelect) {
+function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
     const existing = document.getElementById("zako-dan-modal");
     if (existing) existing.remove();
+
+    const proxyBase = (proxyUrl || "").replace(/\/+$/, "");
+    const isProxy = !!proxyBase;
+    const danbooruApi = isProxy ? `${proxyBase}/api/db-search` : "https://danbooru.donmai.us/posts.json";
+    const maxRetries = isProxy ? 2 : 5;
+    const timeoutMs = isProxy ? 8000 : 30000;
+    const initialPages = isProxy ? 2 : 3;
+
+    async function _fetchPage(tag, apiKey, page) {
+        let url = `${danbooruApi}?tags=${encodeURIComponent(tag)}&limit=${API_LIMIT}&page=${page}`;
+        let authHeader = null;
+        if (apiKey && apiKey.includes(":")) {
+            if (isProxy) {
+                authHeader = apiKey.trim();
+            } else {
+                const [user, key] = apiKey.trim().split(":", 2);
+                url += `&login=${encodeURIComponent(user)}&api_key=${encodeURIComponent(key)}`;
+            }
+        }
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+            try {
+                const headers = { "User-Agent": `DanbooruTagExporter/${Math.random().toFixed(2)}` };
+                if (authHeader) headers["X-Danbooru-Auth"] = authHeader;
+                const resp = await fetch(url, {
+                    headers,
+                    signal: controller.signal,
+                });
+                clearTimeout(timer);
+
+                if (resp.status === 429) {
+                    await _sleep(5000);
+                    continue;
+                }
+
+                if (resp.status === 401) {
+                    throw new Error("API Key 无效，请检查 username:api_key 是否正确");
+                }
+
+                if (resp.status === 422) {
+                    let detail = "";
+                    try { const err = await resp.json(); detail = err.message || err.error || ""; } catch (_) {}
+                    if (detail.includes("more than 2 tags") || detail.includes("TagLimit")) {
+                        throw new Error("标签限制：非黄金会员仅支持2个标签，请填写 API Key");
+                    }
+                    throw new Error("搜索参数错误 (422): " + (detail || "请检查标签格式"));
+                }
+
+                let data;
+                try { data = await resp.json(); } catch (_) { data = null; }
+
+                if (resp.status >= 500 && Array.isArray(data)) {
+                    return data.filter((p) => p.tag_string && p.preview_file_url);
+                }
+
+                if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+                if (!Array.isArray(data)) throw new Error("返回格式异常");
+
+                return data.filter((p) => p.tag_string && p.preview_file_url);
+            } catch (err) {
+                clearTimeout(timer);
+                if (err.message && err.message.includes("API Key")) {
+                    throw err;
+                }
+                if (err.name === "AbortError") {
+                    if (attempt === maxRetries - 1) throw new Error("请求超时");
+                } else if (attempt === maxRetries - 1) {
+                    throw err;
+                }
+                await _sleep(1000 + attempt * 500);
+            }
+        }
+        return [];
+    }
 
     let allPosts = [];
     let nextPage = 1;
@@ -308,7 +318,10 @@ function _showSearchModal(apiKey, tagMode, onSelect) {
 
         const img = document.createElement("img");
         let src = post.preview_file_url || "";
-        if (src) src = "/zako/proxy_image?url=" + encodeURIComponent(src);
+        if (src) {
+            const proxyPath = isProxy ? `${proxyBase}/api/db-proxy` : "/zako/proxy_image";
+            src = `${proxyPath}?url=${encodeURIComponent(src)}`;
+        }
         img.setAttribute("data-src", src);
         img.src = src;
         imgObserver.observe(img);
@@ -411,18 +424,25 @@ function _showSearchModal(apiKey, tagMode, onSelect) {
         if (loading || !currentApiTag) return;
         loading = true;
 
-        try {
-            const posts = await _fetchPages(1, 3);
-            if (posts.length === 0) {
+        for (let retry = 0; retry <= (isProxy ? 1 : 0); retry++) {
+            try {
+                const posts = await _fetchPages(1, initialPages);
+                if (posts.length === 0) {
+                    exhausted = true;
+                } else {
+                    allPosts.push(...posts);
+                    nextPage = initialPages + 1;
+                }
+                break;
+            } catch (err) {
+                if (isProxy && retry === 0) {
+                    await _sleep(2000);
+                    continue;
+                }
                 exhausted = true;
-            } else {
-                allPosts.push(...posts);
-                nextPage = 4;
+                title.textContent = "请求失败: " + (err.message || "网络错误");
+                title.style.color = "#f38ba8";
             }
-        } catch (err) {
-            exhausted = true;
-            title.textContent = "请求失败: " + (err.message || "网络错误");
-            title.style.color = "#f38ba8";
         }
 
         _appendNew();
@@ -435,25 +455,32 @@ function _showSearchModal(apiKey, tagMode, onSelect) {
         loading = true;
         moreBtn.textContent = "加载中...";
 
-        try {
-            let posts;
-            if (prefetchedPosts && prefetchedPosts.page === nextPage) {
-                posts = prefetchedPosts.posts;
-                prefetchedPosts = null;
-            } else {
-                posts = await _fetchPage(currentApiTag, apiKey, nextPage);
-            }
-            if (posts.length === 0) {
+        for (let retry = 0; retry <= (isProxy ? 1 : 0); retry++) {
+            try {
+                let posts;
+                if (prefetchedPosts && prefetchedPosts.page === nextPage) {
+                    posts = prefetchedPosts.posts;
+                    prefetchedPosts = null;
+                } else {
+                    posts = await _fetchPage(currentApiTag, apiKey, nextPage);
+                }
+                if (posts.length === 0) {
+                    exhausted = true;
+                } else {
+                    posts.sort((a, b) => (b.fav_count || 0) - (a.fav_count || 0));
+                    allPosts.push(...posts);
+                    nextPage++;
+                }
+                break;
+            } catch (err) {
+                if (isProxy && retry === 0) {
+                    await _sleep(2000);
+                    continue;
+                }
                 exhausted = true;
-            } else {
-                posts.sort((a, b) => (b.fav_count || 0) - (a.fav_count || 0));
-                allPosts.push(...posts);
-                nextPage++;
+                title.textContent = "请求失败: " + (err.message || "网络错误");
+                title.style.color = "#f38ba8";
             }
-        } catch (err) {
-            exhausted = true;
-            title.textContent = "请求失败: " + (err.message || "网络错误");
-            title.style.color = "#f38ba8";
         }
 
         _appendNew();
@@ -473,7 +500,8 @@ function _showSearchModal(apiKey, tagMode, onSelect) {
 
         if (/[\u4e00-\u9fff]/.test(raw)) {
             try {
-                const resp = await fetch("/zako/tag_translate", {
+                const translatePath = isProxy ? `${proxyBase}/api/tag-translate` : "/zako/tag_translate";
+                const resp = await fetch(translatePath, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ text: raw }),
@@ -603,9 +631,28 @@ app.registerExtension({
                 const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved && !apiKeyWidget.value) {
                     apiKeyWidget.value = saved;
+                } else if (apiKeyWidget.value) {
+                    localStorage.setItem(STORAGE_KEY, apiKeyWidget.value);
                 }
                 const origCallback = apiKeyWidget.callback;
                 apiKeyWidget.callback = function (value) {
+                    localStorage.setItem(STORAGE_KEY, value || "");
+                    return origCallback?.call(this, value);
+                };
+            }
+
+            const proxyWidget = this.widgets.find((w) => w.name === "proxy_url");
+            if (proxyWidget) {
+                proxyWidget.serialize = false;
+                const STORAGE_KEY = "zako_danbooru_proxy_url";
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved && !proxyWidget.value) {
+                    proxyWidget.value = saved;
+                } else if (proxyWidget.value) {
+                    localStorage.setItem(STORAGE_KEY, proxyWidget.value);
+                }
+                const origCallback = proxyWidget.callback;
+                proxyWidget.callback = function (value) {
                     localStorage.setItem(STORAGE_KEY, value || "");
                     return origCallback?.call(this, value);
                 };
@@ -617,8 +664,9 @@ app.registerExtension({
             const btn = this.addWidget("button", "🔍 搜索", null, () => {
                 const apiKey = apiKeyWidget?.value?.trim() || "";
                 const tagMode = tagModeWidget?.value || "不含画师";
+                const proxyUrl = proxyWidget?.value?.trim() || "";
 
-                _showSearchModal(apiKey, tagMode, (tags) => {
+                _showSearchModal(apiKey, tagMode, proxyUrl, (tags) => {
                     if (selectedWidget) selectedWidget.value = tags;
                     self.setDirtyCanvas(true, true);
                 });
