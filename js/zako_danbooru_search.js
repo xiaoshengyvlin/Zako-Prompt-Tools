@@ -500,7 +500,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
 
         if (/[\u4e00-\u9fff]/.test(raw)) {
             try {
-                const translatePath = isProxy ? `${proxyBase}/api/tag-translate` : "/zako/tag_translate";
+                const translatePath = "/zako/tag_translate";
                 const resp = await fetch(translatePath, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
