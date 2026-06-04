@@ -15,7 +15,10 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
     const existing = document.getElementById("zako-dan-modal");
     if (existing) existing.remove();
 
-    const proxyBase = (proxyUrl || "").replace(/\/+$/, "");
+    let proxyBase = (proxyUrl || "").replace(/\/+$/, "");
+    if (proxyBase && !/^https?:\/\//.test(proxyBase)) {
+        proxyBase = "https://" + proxyBase;
+    }
     const isProxy = !!proxyBase;
     const modeLabel = isProxy
         ? (proxyBase.includes("workers.dev") ? "[Cloudflare]" : "[Vercel]")
@@ -369,6 +372,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
 
     function _updateFooter() {
         title.textContent = modeLabel + " " + currentDisplayTag + "  共" + allPosts.length + "张";
+        if (allPosts.length === 0) {
             moreBtn.style.display = "none";
         } else if (exhausted) {
             moreBtn.style.display = "block";
@@ -515,18 +519,21 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
                     apiTag = result.english;
                     displayTag = raw + " → " + result.english;
                     if (result.suggestions && result.suggestions.length > 0) {
-                        _showSuggestionsInModal(raw, result.suggestions, (chosen) => {
+                        searchBtn.textContent = "搜索";
+                        searchBtn.disabled = false;
+                        _showSuggestionsInModal(raw, result.english, result.suggestions, (chosen) => {
                             currentApiTag = chosen;
                             currentDisplayTag = raw + " → " + chosen;
                             _resetResults();
                             _loadInitial();
                             _lastSearch = { apiTag: chosen, displayTag: raw + " → " + chosen, apiKey, tagMode };
                         });
+                        return;
                     }
                 } else if (result.suggestions && result.suggestions.length > 0) {
                     searchBtn.textContent = "搜索";
                     searchBtn.disabled = false;
-                    _showSuggestionsInModal(raw, result.suggestions, (chosen) => {
+                    _showSuggestionsInModal(raw, null, result.suggestions, (chosen) => {
                         currentApiTag = chosen;
                         currentDisplayTag = raw + " → " + chosen;
                         _resetResults();
@@ -535,7 +542,9 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
                     });
                     return;
                 }
-            } catch (_) {}
+            } catch (_) {
+                _notify("翻译服务异常，已用原文搜索");
+            }
         }
 
         currentApiTag = apiTag;
@@ -548,7 +557,7 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
         _lastSearch = { apiTag, displayTag, apiKey, tagMode };
     }
 
-    function _showSuggestionsInModal(query, suggestions, onPick) {
+    function _showSuggestionsInModal(query, matchedEn, suggestions, onPick) {
         const old = document.getElementById("zako-dan-suggest");
         if (old) old.remove();
 
@@ -560,13 +569,32 @@ function _showSearchModal(apiKey, tagMode, proxyUrl, onSelect) {
         });
 
         const sugTitle = document.createElement("div");
-        sugTitle.textContent = '未精确匹配 "' + query + '"，相似词：';
+        sugTitle.textContent = matchedEn
+            ? '已匹配 → ' + matchedEn + '，其他可选：'
+            : '未精确匹配 "' + query + '"，相似词：';
         sugTitle.style.cssText = "font-size:12px;color:#a6adc8;margin-bottom:6px;";
 
         const sugList = document.createElement("div");
         Object.assign(sugList.style, {
             display: "flex", flexWrap: "wrap", gap: "6px",
         });
+
+        if (matchedEn) {
+            const matchTag = document.createElement("span");
+            matchTag.textContent = "★ " + matchedEn + "（推荐）";
+            Object.assign(matchTag.style, {
+                padding: "3px 10px", borderRadius: "6px",
+                background: "#89b4fa", color: "#1e1e2e", cursor: "pointer",
+                fontSize: "12px", fontWeight: "bold", transition: "background 0.1s",
+            });
+            matchTag.onmouseenter = () => (matchTag.style.background = "#74c7ec");
+            matchTag.onmouseleave = () => (matchTag.style.background = "#89b4fa");
+            matchTag.onclick = () => {
+                sugCard.remove();
+                onPick(matchedEn);
+            };
+            sugList.appendChild(matchTag);
+        }
 
         for (const s of suggestions) {
             const tag = document.createElement("span");

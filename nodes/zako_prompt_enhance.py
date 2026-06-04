@@ -104,7 +104,12 @@ class ZakoPromptEnhance:
         try:
             resp = requests.post(url, headers=headers, json=payload, timeout=60)
             if resp.status_code != 200:
-                return (text,)
+                detail = ""
+                try:
+                    detail = resp.json().get("message", "") or resp.text[:200]
+                except Exception:
+                    detail = resp.text[:200]
+                return (f"[增强失败: HTTP {resp.status_code}] {detail}",)
 
             data = resp.json()
             result = data["choices"][0]["message"]["content"].strip()
@@ -114,8 +119,8 @@ class ZakoPromptEnhance:
 
             return (result,)
         except requests.exceptions.Timeout:
-            return (text,)
+            return ("[增强失败: 请求超时]",)
         except requests.exceptions.ConnectionError:
-            return (text,)
+            return ("[增强失败: 无法连接 API 服务器]",)
         except Exception:
-            return (text,)
+            return ("[增强失败: 未知错误]",)

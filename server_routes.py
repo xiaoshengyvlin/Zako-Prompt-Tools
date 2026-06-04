@@ -1,7 +1,6 @@
 """ComfyUI API routes for Zako-Prompt-Tools nodes."""
 
 import sqlite3
-import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -9,7 +8,7 @@ from urllib.parse import urlparse
 def setup_routes():
     try:
         from server import PromptServer
-        from aiohttp import web
+        from aiohttp import web, ClientSession, ClientTimeout
     except ImportError:
         return
 
@@ -28,14 +27,18 @@ def setup_routes():
         if not _is_donmai_url(url):
             return web.Response(status=400)
         try:
-            req = urllib.request.Request(
-                url, headers={"User-Agent": "DanbooruTagExporter/0.50"}
-            )
-            data = urllib.request.urlopen(req, timeout=10).read()
-            return web.Response(
-                body=data, content_type="image/jpeg",
-                headers={"Cache-Control": "public, max-age=86400"},
-            )
+            timeout = ClientTimeout(total=10)
+            async with ClientSession() as session:
+                async with session.get(
+                    url,
+                    headers={"User-Agent": "DanbooruTagExporter/0.50"},
+                    timeout=timeout,
+                ) as resp:
+                    data = await resp.read()
+                    return web.Response(
+                        body=data, content_type="image/jpeg",
+                        headers={"Cache-Control": "public, max-age=86400"},
+                    )
         except Exception:
             return web.Response(status=502)
 
@@ -50,8 +53,8 @@ def setup_routes():
         if not text:
             return web.json_response({"found": False})
 
+        conn = sqlite3.connect(str(db_path))
         try:
-            conn = sqlite3.connect(str(db_path))
             cursor = conn.cursor()
 
             cursor.execute(
@@ -70,7 +73,6 @@ def setup_routes():
                     {"cn": r[0], "en": r[1], "post_count": r[2]}
                     for r in cursor.fetchall()
                 ]
-                conn.close()
                 return web.json_response({
                     "found": True,
                     "english": row[0],
@@ -88,7 +90,8 @@ def setup_routes():
                 {"cn": r[0], "en": r[1], "post_count": r[2]}
                 for r in cursor.fetchall()
             ]
-            conn.close()
             return web.json_response({"found": False, "suggestions": suggestions})
         except Exception:
             return web.json_response({"error": "Internal server error"}, status=500)
+        finally:
+            conn.close()

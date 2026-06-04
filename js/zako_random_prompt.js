@@ -23,8 +23,8 @@ app.registerExtension({
             }
 
             const getLabel = () => {
-                if (!enableWidget) return "🎲 抽取";
-                return enableWidget.value ? "🎲 抽取" : "📌 已固定";
+                if (!enableWidget) return "🎲 随机模式";
+                return enableWidget.value ? "🎲 随机模式" : "📌 固定模式";
             };
 
             const btn = this.addWidget("button", getLabel(), null, () => {

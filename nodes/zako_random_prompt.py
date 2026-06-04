@@ -109,9 +109,9 @@ class ZakoRandomPrompt:
         conditions = [f"rating IN ({','.join('?' * len(ratings))})"]
         params: list[str] = list(ratings)
 
-        if topic and topic != "全部":
+        if 主题 and 主题 != "全部":
             conditions.append("topic = ?")
-            params.append(topic)
+            params.append(主题)
 
         where = " AND ".join(conditions)
         cursor.execute(
