@@ -1,9 +1,0 @@
-{
-  "name": "zako-prompt-tools-vercel",
-  "type": "module",
-  "version": "1.0.0",
-  "description": "Vercel proxy layer for Zako-Prompt-Tools — 转发 D 站 API 和图片请求，绕过网络封锁",
-  "dependencies": {
-    "sql.js": "^1.11.0"
-  }
-}
